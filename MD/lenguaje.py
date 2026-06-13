@@ -1,5 +1,3 @@
-# Archivo generado automaticamente desde el lenguaje .imb
-
 entorno = 'desarrollo'
 paquete = 'nodejs'
 version = 18.0

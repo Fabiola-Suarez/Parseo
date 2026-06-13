@@ -5,8 +5,8 @@
 - [Traductor](https://github.com/Fabiola-Suarez/Parseo/blob/main/MD/app.ipynb)
 - [Lenguaje](https://github.com/Fabiola-Suarez/Parseo/blob/main/MD/lenguaje.py)
 - [Scanner](https://github.com/Fabiola-Suarez/Parseo/blob/main/MD/scanner.py)
-- [Parser](https://github.com/Fabiola-Suarez/Parseo/blob/main/MD/parcer.ipynb)
-- [Programa_Principal](https://github.com/Fabiola-Suarez/Parseo/blob/main/MD/main.ipynb)
+- [Parser](https://github.com/Fabiola-Suarez/Parseo/blob/main/MD/parser.ipynb)
+- [Programa_Principal](https://github.com/Fabiola-Suarez/Parseo/blob/main/MD/main.py)
 
 
 
