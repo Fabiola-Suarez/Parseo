@@ -3,9 +3,9 @@
 ---
 ### Trabajos Final
 - [Traductor](https://github.com/Fabiola-Suarez/Parseo/blob/main/MD/app.ipynb)
-- [Lenguaje](https://github.com/Fabiola-Suarez/Parseo/blob/main/MD/lenguaje.py)
+- [Leng_progrmas_automatizados](https://github.com/Fabiola-Suarez/Parseo/blob/main/MD/lenguaje.py)
 - [Scanner](https://github.com/Fabiola-Suarez/Parseo/blob/main/MD/scanner.py)
-- [Parser](https://github.com/Fabiola-Suarez/Parseo/blob/main/MD/parser.ipynb)
+- [Parser](https://github.com/Fabiola-Suarez/Parseo/blob/main/MD/parser.py)
 - [Programa_Principal](https://github.com/Fabiola-Suarez/Parseo/blob/main/MD/main.py)
 
 

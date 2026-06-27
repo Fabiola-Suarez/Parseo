@@ -1,13 +1,11 @@
 import ast
-import re
-from dataclasses import dataclass
+
+import ply.lex as lex
 
 
 # -----------------------
 # Palabras reservadas
 # -----------------------
-# Son las palabras propias del lenguaje.
-# No se toman como identificadores comunes.
 
 reserved = {
     "VAR": "VAR",
@@ -26,9 +24,8 @@ reserved = {
 # -----------------------
 # Tokens
 # -----------------------
-# Estos son los elementos minimos que reconoce el scanner.
 
-tokens = [
+tokens = (
     "ID",
     "STRING",
     "NUMBER",
@@ -41,116 +38,76 @@ tokens = [
     # Simbolos
     "LBRACE",
     "RBRACE",
-] + list(reserved.values())
+) + tuple(reserved.values())
 
 
 # -----------------------
-# Clase Token
+# Patrones simples
 # -----------------------
-# Guarda tipo, valor y posicion para poder explicar errores.
 
-@dataclass
-class Token:
-    type: str
-    value: object
-    line: int
-    column: int
-    lexeme: str
+t_EQ = r"=="
+t_EQUALS = r"="
+t_GT = r">"
+t_LBRACE = r"\{"
+t_RBRACE = r"\}"
 
 
-class ScannerError(Exception):
+# -----------------------
+# Tokens con acciones
+# -----------------------
+
+def t_STRING(t):
+    r'"([^\\\n]|(\\.))*?"|\'([^\\\n]|(\\.))*?\''
+    t.lexeme = t.value
+    t.value = ast.literal_eval(t.value)
+    return t
+
+
+def t_NUMBER(t):
+    r"\d+(\.\d+)?"
+    t.lexeme = t.value
+    return t
+
+
+def t_ID(t):
+    r"[A-Za-z_][A-Za-z0-9_]*"
+    t.lexeme = t.value
+    t.type = reserved.get(t.value, "ID")
+    return t
+
+
+# -----------------------
+# Ignorar espacios, tabs y comentarios
+# -----------------------
+
+t_ignore = " \t"
+
+
+def t_COMMENT(t):
+    r"\#.*"
     pass
 
 
-# -----------------------
-# Expresiones regulares
-# -----------------------
-# El orden importa: primero se reconocen operadores largos como ==.
+def t_newline(t):
+    r"\n+"
+    t.lexer.lineno += t.value.count("\n")
 
-token_patterns = [
-    ("EQ", r"=="),
-    ("EQUALS", r"="),
-    ("GT", r">"),
-    ("LBRACE", r"\{"),
-    ("RBRACE", r"\}"),
-    ("STRING", r'"([^\\\n]|(\\.))*?"'),
-    ("NUMBER", r"\d+(\.\d+)?"),
-    ("ID", r"[A-Za-z_][A-Za-z0-9_]*"),
-]
+
+def t_error(t):
+    print("Caracter ilegal '%s'" % t.value[0])
+    t.lexer.skip(1)
 
 
 # -----------------------
-# Construccion del scanner
+# Construir scanner
 # -----------------------
-# Recorre el codigo fuente y devuelve una lista de tokens.
 
-def scanner(data):
-    token_list = []
-
-    for line_number, raw_line in enumerate(data.splitlines(), start=1):
-        line = raw_line.rstrip()
-        stripped = line.strip()
-
-        if not stripped:
-            continue
-
-        if stripped.startswith("#"):
-            continue
-
-        position = 0
-
-        while position < len(line):
-            character = line[position]
-
-            if character.isspace():
-                position += 1
-                continue
-
-            matched = False
-
-            for token_type, pattern in token_patterns:
-                match = re.match(pattern, line[position:])
-
-                if match:
-                    lexeme = match.group(0)
-                    value = lexeme
-
-                    if token_type == "STRING":
-                        value = ast.literal_eval(lexeme)
-
-                    elif token_type == "NUMBER":
-                        value = lexeme
-
-                    elif token_type == "ID":
-                        token_type = reserved.get(lexeme, "ID")
-
-                    token_list.append(
-                        Token(
-                            type=token_type,
-                            value=value,
-                            line=line_number,
-                            column=position + 1,
-                            lexeme=lexeme,
-                        )
-                    )
-
-                    position += len(lexeme)
-                    matched = True
-                    break
-
-            if not matched:
-                raise ScannerError(
-                    f"Caracter ilegal '{character}' en linea {line_number}, "
-                    f"columna {position + 1}"
-                )
-
-    return token_list
+lexer = lex.lex()
 
 
 # -----------------------
 # Prueba
 # -----------------------
-# Este ejemplo permite mostrar el scanner funcionando.
 
 if __name__ == "__main__":
     data = '''
@@ -173,5 +130,10 @@ PAQUETE python {
 SI entorno == "desarrollo" ENTONCES INSTALAR nodejs
 '''
 
-    for token in scanner(data):
-        print(token)
+    lexer.input(data)
+
+    while True:
+        tok = lexer.token()
+        if not tok:
+            break
+        print(tok)

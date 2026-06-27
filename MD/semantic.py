@@ -5,7 +5,7 @@ class SemanticError(Exception):
 # -----------------------
 # Acciones semanticas
 # -----------------------
-# Validan reglas que no son solo sintaxis.
+# Validan reglas que no son de la sintaxis.
 
 def validate_program(program):
     validate_packages(program)

@@ -4,7 +4,6 @@ from pprint import pformat
 # -----------------------
 # Generador de codigo
 # -----------------------
-# Recibe el AST validado y genera codigo Python.
 
 def package_to_dict(package):
     return {
@@ -15,6 +14,71 @@ def package_to_dict(package):
     }
 
 
+def dependency_order(package_name, packages):
+    order = []
+    visited = set()
+    stack = [(package_name, False)]
+
+    while stack:
+        current, expanded = stack.pop()
+
+        if expanded:
+            if current not in visited:
+                visited.add(current)
+                order.append(current)
+            continue
+
+        if current in visited:
+            continue
+
+        stack.append((current, True))
+
+        dependencies = packages[current].dependencies
+        index = len(dependencies) - 1
+        while index >= 0:
+            dependency = dependencies[index]
+            if dependency not in visited:
+                stack.append((dependency, False))
+            index -= 1
+
+    return order
+
+
+def emit_conflict_checks(output, package_name, packages, indent):
+    package = packages[package_name]
+
+    for conflict in package.conflicts:
+        output.extend(
+            [
+                f"{indent}if {conflict!r} in instalados:",
+                f"{indent}    raise RuntimeError('Incompatibilidad: {package_name} entra en conflicto con {conflict}')",
+                "",
+            ]
+        )
+
+    for installed_name, installed_package in packages.items():
+        if package_name in installed_package.conflicts:
+            output.extend(
+                [
+                    f"{indent}if {installed_name!r} in instalados:",
+                    f"{indent}    raise RuntimeError('Incompatibilidad: {package_name} entra en conflicto con {installed_name}')",
+                    "",
+                ]
+            )
+
+
+def emit_install_package(output, package_name, packages, indent):
+    emit_conflict_checks(output, package_name, packages, indent)
+    output.extend(
+        [
+            f"{indent}if {package_name!r} not in instalados:",
+            f"{indent}    print('Instalando: {package_name}')",
+            f"{indent}    instalados.append({package_name!r})",
+            "",
+        ]
+    )
+
+
 def generate_python(program):
     packages = {
         name: package_to_dict(package)
@@ -23,6 +87,7 @@ def generate_python(program):
 
     output = [
         "# Archivo generado automaticamente desde el lenguaje .imb",
+        "# No usa recursividad: el traductor deja el orden de instalacion resuelto.",
         "",
     ]
 
@@ -36,46 +101,6 @@ def generate_python(program):
             "",
             "instalados = []",
             "",
-            "",
-            "def validar_conflictos(nombre):",
-            "    paquete = paquetes[nombre]",
-            "    conflictos = set(paquete.get('conflictos', []))",
-            "    validar_conflictos_desde(nombre, conflictos, 0)",
-            "",
-            "",
-            "def validar_conflictos_desde(nombre, conflictos, indice):",
-            "    if indice < len(instalados):",
-            "        instalado = instalados[indice]",
-            "        conflictos_instalado = set(paquetes[instalado].get('conflictos', []))",
-            "",
-            "        if instalado in conflictos or nombre in conflictos_instalado:",
-            "            raise RuntimeError(",
-            "                f'Incompatibilidad: {nombre} entra en conflicto con {instalado}'",
-            "            )",
-            "",
-            "        validar_conflictos_desde(nombre, conflictos, indice + 1)",
-            "",
-            "",
-            "def instalar_dependencias(dependencias, indice):",
-            "    if indice < len(dependencias):",
-            "        instalar(dependencias[indice])",
-            "        instalar_dependencias(dependencias, indice + 1)",
-            "",
-            "",
-            "def instalar(nombre):",
-            "    if nombre in instalados:",
-            "        return",
-            "",
-            "    if nombre not in paquetes:",
-            "        raise RuntimeError(f'Paquete desconocido: {nombre}')",
-            "",
-            "    dependencias = paquetes[nombre].get('dependencias', [])",
-            "    instalar_dependencias(dependencias, 0)",
-            "",
-            "    validar_conflictos(nombre)",
-            "    print(f'Instalando: {nombre}')",
-            "    instalados.append(nombre)",
-            "",
         ]
     )
 
@@ -84,10 +109,11 @@ def generate_python(program):
         output.extend(
             [
                 f"if {comparison}:",
-                f"    instalar({condition.package!r})",
-                "",
             ]
         )
+
+        for package_name in dependency_order(condition.package, program.packages):
+            emit_install_package(output, package_name, program.packages, "    ")
 
     output.extend(
         [

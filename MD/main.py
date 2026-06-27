@@ -1,110 +1,55 @@
-import argparse
-from pathlib import Path
-
 from generator import generate_python
-from parser import ParserError, parse_code
-from scanner import ScannerError, scanner
-from semantic import SemanticError, validate_program
+from parser import parse_code
+from semantic import validate_program
 
 
-# -----------------------
-# Programa principal
-# -----------------------
-# Une las etapas del traductor:
-# 1. Scanner
-# 2. Parser
-# 3. Acciones semanticas
-# 4. Generacion de codigo Python
+data = '''
+VAR entorno = "desarrollo"
+VAR paquete = nodejs
+VAR version = 18.0
 
-def translate_file(input_path, output_path):
-    source = input_path.read_text(encoding="utf-8")
+PAQUETE nodejs {
+    VERSION 18.0
+    DEPENDE libssl
+    DEPENDE python
+}
 
-    program = parse_code(source)
-    validate_program(program)
+PAQUETE python {
+    VERSION 3.10
+    DEPENDE libssl
+    CONFLICTO python2
+}
 
-    generated = generate_python(program)
-    output_path.write_text(generated, encoding="utf-8")
+PAQUETE python2 {
+    VERSION 2.7
+}
 
-    return generated
+PAQUETE libssl {
+    VERSION 1.1
+}
 
+PAQUETE dev_tools {
+    VERSION 1.0
+}
 
-def print_tokens(source):
-    for token in scanner(source):
-        print(token)
-
-
-def run_generated(code):
-    namespace = {"__name__": "__main__"}
-    exec(code, namespace)
-
-
-def main():
-    cli = argparse.ArgumentParser(
-        description="Traductor del lenguaje de instalacion de paquetes."
-    )
-    cli.add_argument(
-        "input",
-        nargs="?",
-        default="lenguaje.imb",
-        help="Archivo fuente del lenguaje. Por defecto: lenguaje.imb",
-    )
-    cli.add_argument(
-        "-o",
-        "--output",
-        help="Archivo Python de salida. Por defecto: mismo nombre con extension .py",
-    )
-    cli.add_argument(
-        "--tokens",
-        action="store_true",
-        help="Muestra solo la salida del scanner.",
-    )
-    cli.add_argument(
-        "--ast",
-        action="store_true",
-        help="Muestra el AST generado por el parser.",
-    )
-    cli.add_argument(
-        "--run",
-        action="store_true",
-        help="Ejecuta el Python generado.",
-    )
-
-    args = cli.parse_args()
-
-    input_path = Path(args.input)
-    output_path = Path(args.output) if args.output else input_path.with_suffix(".py")
-
-    try:
-        source = input_path.read_text(encoding="utf-8")
-
-        if args.tokens:
-            print_tokens(source)
-            return
-
-        program = parse_code(source)
-
-        if args.ast:
-            print(program)
-            return
-
-        validate_program(program)
-        generated = generate_python(program)
-        output_path.write_text(generated, encoding="utf-8")
-
-    except ScannerError as exc:
-        raise SystemExit(f"Error de scanner: {exc}") from exc
-    except ParserError as exc:
-        raise SystemExit(f"Error de parser: {exc}") from exc
-    except SemanticError as exc:
-        raise SystemExit(f"Error semantico: {exc}") from exc
-    except FileNotFoundError as exc:
-        raise SystemExit(f"No se encontro el archivo: {input_path}") from exc
-
-    print(f"Traduccion generada en: {output_path}")
-
-    if args.run:
-        run_generated(generated)
+SI entorno == "produccion" ENTONCES INSTALAR nodejs
+SI entorno == "desarrollo" ENTONCES INSTALAR dev_tools
+'''
 
 
-if __name__ == "__main__":
-    main()
+programa = parse_code(data)
+validate_program(programa)
+
+codigo_python = generate_python(programa)
+
+with open("leng_programas_automatizados.py", "w", encoding="utf-8") as archivo:
+    archivo.write(codigo_python)
+
+print("--- AST ---")
+print(programa)
+
+print("\n--- CODIGO GENERADO ---")
+print(codigo_python)
+
+print("\n--- EJECUCION ---")
+exec(codigo_python)
