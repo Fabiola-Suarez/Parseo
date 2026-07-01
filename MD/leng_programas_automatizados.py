@@ -1,6 +1,3 @@
-# Archivo generado automaticamente desde el lenguaje .imb
-# No usa recursividad: el traductor deja el orden de instalacion resuelto.
-
 entorno = 'desarrollo'
 paquete = 'nodejs'
 version = 18.0
